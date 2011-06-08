@@ -20,7 +20,8 @@ struct peer
   struct net *net;
 };
 
-struct peer * peer_new(struct net *net, int socket, struct sockaddr_in6 *addr);
+struct peer * peer_new(struct net *net, int socket, 
+    const char *host, int port);
 
 void peer_free(struct peer *peer);
 

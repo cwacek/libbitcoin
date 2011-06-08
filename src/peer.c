@@ -24,6 +24,10 @@ struct peer * peer_connect(struct net *net, const char *node, int port)
   memset(&hints, 0, sizeof(struct addrinfo));
 
   snprintf(sport, 6, "%d", port);
+
+#ifndef IPV6
+  hints.ai_family = AF_INET;
+#endif
   hints.ai_flags = AI_ALL;
 
   error = getaddrinfo(node, sport, &hints, &result);
@@ -40,14 +44,12 @@ struct peer * peer_connect(struct net *net, const char *node, int port)
   if(connect(s, result->ai_addr, result->ai_addrlen) < 0)
     return NULL;
 
+  freeaddrinfo(result);
+
   /* if we got an IPv4 address we need to convert it to mapped v4 format */
   /* this is only for internal representation now when the connection 
    * has been established */
-  if(net_map_address(&result) != 0)
-    return NULL;
-
-  peer = peer_new(net, s, (struct sockaddr_in6*)result->ai_addr);
-  freeaddrinfo(result);
+  peer = peer_new(net, s, node, port);
 
   if(peer_start_handshake(peer) != 0)
     return NULL;
@@ -55,19 +57,27 @@ struct peer * peer_connect(struct net *net, const char *node, int port)
   return peer;
 }
 
-struct peer * peer_new(struct net *net, int socket, struct sockaddr_in6 *addr)
+struct peer * peer_new(struct net *net, int socket, const char *host,
+    int port)
 {
   struct peer *peer;
+  struct addrinfo *addr;
 
   assert(net != NULL);
-  assert(addr != NULL);
+  assert(host != NULL);
   assert(socket > 0);
+
+  addr = net_map_address(host, port);
+  if(addr == NULL)
+    return NULL;
 
 #ifdef DEBUG
   {
-    char node[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET6, &addr->sin6_addr, node, INET6_ADDRSTRLEN);
-    printf("debug: new peer %s\n", node);
+    char new_node[INET6_ADDRSTRLEN];
+    struct sockaddr_in6 * sin6;
+    sin6 = (struct sockaddr_in6*)addr->ai_addr;
+    inet_ntop(addr->ai_family, &sin6->sin6_addr, new_node, INET6_ADDRSTRLEN);
+    printf("debug: new peer %s\n", new_node);
   }
 #endif
 
@@ -76,7 +86,7 @@ struct peer * peer_new(struct net *net, int socket, struct sockaddr_in6 *addr)
   peer->net = net;
   peer->state = PEER_STATE_INITIALIZED;
 
-  memcpy(&peer->addr, addr, sizeof(struct sockaddr_in6));
+  memcpy(&peer->addr, addr->ai_addr, sizeof(struct sockaddr_in6));
 
   return peer;
 }

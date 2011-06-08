@@ -25,18 +25,12 @@ struct net
   char *version;
 };
 
-struct net * net_new(int network, const char *addr, int port, 
-    services_t services, const char *version);
+struct net * net_new(int network, const char *listen, const char *addr, 
+    int port, services_t services, const char *version);
 
 void net_free(struct net *net);
 
-/**
- * Converts an AF_INET family address to an IPv4 mapped IPv6 address.
- * If input has AF_INET6 family nothing is done.
- *
- * addr might be freed and reallocated. Caller must free addr.
- */
-int net_map_address(struct addrinfo **info);
+struct addrinfo * net_map_address(const char *node, int port);
 
 int net_send_version(struct peer *peer, int start_height);
 
