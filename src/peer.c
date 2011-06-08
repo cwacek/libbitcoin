@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "peer.h"
 #include "net.h"
@@ -82,6 +83,7 @@ struct peer * peer_new(struct net *net, int socket, struct sockaddr_in6 *addr)
 
 void peer_free(struct peer *peer)
 {
+  close(peer->socket);
   free(peer);
 }
 

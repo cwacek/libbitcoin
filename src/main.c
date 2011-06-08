@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
   struct net *net;
   struct peer *peer;
 
-  net = net_new(NETWORK_MAIN, "213.132.119.37", 8331, NETWORK_SERVICE_NODE, "libbitcoin 0.0.1");
+  net = net_new(NETWORK_MAIN, "gaia.cmd.nu", 8331, NETWORK_SERVICE_NODE, "libbitcoin 0.0.1");
   if(net == NULL)
   {
     perror("net_new");
