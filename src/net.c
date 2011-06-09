@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 
+#include "packet.h"
 #include "peer.h"
 #include "net.h"
 
@@ -113,75 +114,14 @@ struct addrinfo * net_map_address(const char *node, int port)
   return result;
 }
 
-static void * net_new_buffer(size_t length)
-{
-  struct net_header_slim *packet = calloc(1, length);
-
-  packet->length = length - sizeof(struct net_header_slim);
-  return packet;
-}
-
-static void net_free_buffer(void * buffer)
-{
-  free(buffer);
-}
-
 int net_send_version(struct peer *peer, int start_height)
 {
-  /* base for version packet */
-  struct net_pkt_version
-  {
-    struct net_header_slim header;
-    uint32_t version;
-    uint64_t services;
-    uint64_t timestamp;
-    struct net_addr addr_me;
-    struct net_addr addr_you;
-    uint64_t nonce;
-  } __attribute__((packed));
+  struct packet *packet;
+  int ret;
 
-  struct net_pkt_version *packet;
-  char *packet_subver;
-  uint32_t *packet_start_height;
-  struct net *net;
-  int len;
+  packet = packet_version(peer, start_height);
+  ret = packet_send(peer, packet);
+  packet_free(packet);
 
-  net = peer->net;
-  len = sizeof(struct net_pkt_version) + strlen(net->version) + 5;
-
-  packet = net_new_buffer(len);
-  packet_subver = (char*)(packet+1);
-  packet_start_height = (uint32_t*)(packet_subver+strlen(net->version)+1);
-
-  /* TODO: portable LE */
-  packet->header.magic = peer->net->magic;
-  strncpy(packet->header.command, "version", 12);
-  packet->version = 32200;
-  packet->services = net->services;
-  packet->timestamp = (uint64_t)time(NULL);
-  packet->nonce = 0x1234;
-
-  packet->addr_me.services = net->services;
-  packet->addr_me.port = net->addr.sin6_port;
-  memcpy(&packet->addr_me.addr, &net->addr.sin6_addr, 
-      sizeof(struct in6_addr));
- 
-  /* we do not know what services the remote node has */
-  packet->addr_you.services = 1;
-  packet->addr_you.port = peer->addr.sin6_port;
-  memcpy(&packet->addr_you.addr, &peer->addr.sin6_addr,
-      sizeof(struct in6_addr));
-
-  /* add sub-version */
-  strcpy(packet_subver, net->version);
-
-  /* add start height */
-  *packet_start_height = start_height;
-
-  if(send(peer->socket, packet, len, 0) != len)
-    return -1;
-
-  net_free_buffer(packet);
-  return 0;
+  return ret;
 }
-

@@ -12,16 +12,25 @@
 
 #define NETWORK_SERVICE_NODE 0x01
 
+#define NET_NO_CHECKSUM 0x01
+
 struct peer;
 
 typedef uint64_t services_t;
+
+struct net_addr
+{
+  uint64_t services;
+  struct in6_addr addr;
+  uint16_t port;
+};
 
 struct net
 {
   int socket;
   uint32_t magic;
   services_t services;
-  struct sockaddr_in6 addr;
+  struct net_addr addr;
   char *version;
 };
 
@@ -35,28 +44,5 @@ struct addrinfo * net_map_address(const char *node, int port);
 int net_send_version(struct peer *peer, int start_height);
 
 /** packet generation **/
-
-struct net_header_slim
-{
-  uint32_t magic;
-  char command[12];
-  uint32_t length;
-} __attribute__((packed));
-
-struct net_header
-{
-  uint32_t magic;
-  char command[12];
-  uint32_t length;
-  uint32_t checksum;
-} __attribute__((packed));
-
-struct net_addr
-{
-  uint64_t services;
-  struct in6_addr addr;
-  uint16_t port;
-} __attribute__((packed));
-
 #endif
 

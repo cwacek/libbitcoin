@@ -14,7 +14,7 @@
 struct peer
 {
   int socket;
-  struct sockaddr_in6 addr;
+  struct net_addr addr;
   int state;
 
   struct net *net;
